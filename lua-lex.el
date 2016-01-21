@@ -324,28 +324,6 @@ repeat  return  then  true  until  while some_id{}[]()+%*/, { } [ ] ( ) + % * / 
 		  if (not (eq *token-type* expected)) do (return)
 		  finally (return t))))
 
-(with-current-buffer "tok.lua"
-  (with-current-buffer "abc" (erase-buffer))
-  (loop with *token-start* = nil
-		with *token-end* = 1
-		with *token-type* = nil
-		for token = (next-real-lua-token)
-		while token
-		do (let ((s (token-string)) (tt *token-type*) (ts *token-start*))
-			 (with-current-buffer "abc"
-			   (insert (format "%d %s: %s\n" ts tt s))))))
-
-(with-current-buffer "test-lua"
-  (with-current-buffer "abc" (erase-buffer))
-  (loop with *token-start* = nil
-		with *token-end* = 1
-		with *token-type* = nil
-		for token = (next-real-lua-token)
-		while token
-		do (let ((s (token-string)) (tt *token-type*))
-			 (with-current-buffer "abc"
-			   (insert (format "%s: %s\n" tt s))))))
-
 (defun test-statement-lex ()
   (and (equal '(if id then end) (token-types "if id then end"))
 	   (equal '(if pound id then end) (token-types "if #id then end"))
