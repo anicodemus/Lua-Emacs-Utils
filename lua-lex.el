@@ -149,11 +149,10 @@ e.g
 			 (set-token 'lb 1))) 
 
 	  ("'\"" (set-token 'string 
-						(loop with escaping = nil
-							  with delim = (char-after *token-start*)
+						(loop with delim = (char-after *token-start*)
 							  for i from (1+ *token-start*)
+							  for escaping = nil then (and (eq c ?\\) (not escaping))
 							  for c = (char-after i)
-							  if (eq ?\\ c) do (setq escaping t) else do (setq escaping nil)
 							  if (and (eq delim c) (not escaping)) do (return (- i *token-start* -1)))))
 	  ("0" (set-token 'number 
 					  (if (or (next-is ?x) (next-is ?X)) (match-hex-number *token-start*)
@@ -242,7 +241,7 @@ e.g
 											   (vararg (push-token))
 											   (comma)
 											   (otherwise (error "bad token in args list"))))))
-	(loop with point-of-interest = (point)
+	(loop with point-of-interest =  (progn (message "%s" (point)) (point))
 		  with state = 'top
 		  with cenv = nil
 		  with env = nil
@@ -250,11 +249,15 @@ e.g
 		  with *token-end*   = 1 
 		  with *token-type* = nil
 		  for token = (next-real-lua-token) while token
+		  for _ = (message "%s" (list *token-start* *token-end* point-of-interest))
 		  if (and (>= point-of-interest *token-start*)
-				  (<= point-of-interest *token-end*)) do (return (loop with s = (token-string)
+				  (< point-of-interest *token-end*)) do (return (loop with s = (token-string)
 																	   for e in (cons cenv env)
 																	   for v = (assoc s e) 
-																	   if v do (return (cdr v))))
+																	   if v do (return (progn
+																						 (message "%s"
+																								  (list *token-start* *token-end* v))
+																						 (cdr v)))))
 				  else if (< point-of-interest *token-start*) do (return)
 				  do (case state
 					   (top (case *token-type*
@@ -287,15 +290,18 @@ e.g
 	 (test "function a (b) function c(e) return b end end" 37 13)
 	 (test "function a (b) function c(b) return b end end" 37 27)
 	 (test "function a (b) local      e; return e end end" 37 27)
-	 (test "function a () end a()" 20 10)
-	 (test "local function a () end a()" 26 16)
+	 (test "function a () end a()" 19 10)
+	 (test "function a (b,c) f(b,c) end" 22 15)
+	 (test "local function a () end a()" 25 16)
 	 (test "local a = 0 for i=1,20 do a = i + a end" 31 17)
 	 (test "local a = 0 for i=1,20 do a = i + a end" 35 7)
 	 (test "local a = 0 if a then a = a + 7 end a()" 37 7)
+	 (test "local a,e = 0 if a then a = a + 7 end a()" 39 7)
 	 (test "function a () for i= 1,10 do return i end end a()" 47 10)
 	 (test "local function a () for _,j in pairs{1,2} do return i end end a()" 63 16)
 	 (test "local b local function a () return b end local function c () return b end" 69 7)
 	 (test "local function a () end local function g () end a()" 49 16))))
+
 
 (defun test-lexer ()
   (with-temp-buffer
@@ -317,6 +323,28 @@ repeat  return  then  true  until  while some_id{}[]()+%*/, { } [ ] ( ) + % * / 
 		  while token
 		  if (not (eq *token-type* expected)) do (return)
 		  finally (return t))))
+
+(with-current-buffer "tok.lua"
+  (with-current-buffer "abc" (erase-buffer))
+  (loop with *token-start* = nil
+		with *token-end* = 1
+		with *token-type* = nil
+		for token = (next-real-lua-token)
+		while token
+		do (let ((s (token-string)) (tt *token-type*) (ts *token-start*))
+			 (with-current-buffer "abc"
+			   (insert (format "%d %s: %s\n" ts tt s))))))
+
+(with-current-buffer "test-lua"
+  (with-current-buffer "abc" (erase-buffer))
+  (loop with *token-start* = nil
+		with *token-end* = 1
+		with *token-type* = nil
+		for token = (next-real-lua-token)
+		while token
+		do (let ((s (token-string)) (tt *token-type*))
+			 (with-current-buffer "abc"
+			   (insert (format "%s: %s\n" tt s))))))
 
 (defun test-statement-lex ()
   (and (equal '(if id then end) (token-types "if id then end"))
@@ -343,4 +371,5 @@ repeat  return  then  true  until  while some_id{}[]()+%*/, { } [ ] ( ) + % * / 
 					  (insert (propertize (format "failed: %s\n" test)  'font-lock-face '(:foreground "yellow")))
 					  (setq failed t)))
 	  (if failed (switch-to-buffer-other-window "*Test*")))))
+
 
