@@ -197,6 +197,33 @@ e.g
 		  while token
 		  collect *token-type*)))
 
+(defun lua-goto-function ()
+  "Goto the function declaration matched by a completing read"
+  (interactive)
+  (loop with functions = '()
+		with fn-name = ""
+		with state = nil
+		with *token-start* = 1 
+		with *token-end*   = 1 
+		with *token-type* = nil
+		for token = (next-real-lua-token) while token
+		if state do (if (eq *token-type* 'lp)
+						(progn
+						  (when (not (equal fn-name ""))
+							(push (cons fn-name state) functions))
+						  (setq fn-name "")
+						  (setq state nil))
+					  (setq fn-name
+							(concat fn-name
+									(buffer-substring-no-properties *token-start*
+																	*token-end*))))
+		else if (eq *token-type* 'function) do (setq state *token-start*)
+		finally (let ((v (completing-read "dec: " (mapcar #'car functions))))
+				  (when v
+					(let ((x (assoc v functions)))
+					  (when x (goto-char (cdr x))))))))
+
+
 (defun lua-find-def ()
   "Finds the declaration of the Lua symbol which the cursor is on"
   (interactive)
