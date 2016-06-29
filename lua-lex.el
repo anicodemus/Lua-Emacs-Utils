@@ -20,7 +20,7 @@
 		finally (return t)))
 		
 (defmacro char-case (v &rest forms)
-  "Case statement that dispatches gainst a set of characters
+  "Case statement that dispatches against a set of characters
 e.g
 (char-chase c
   (\"abc\" 0)
@@ -276,7 +276,7 @@ e.g
 		  with *token-end*   = 1 
 		  with *token-type* = nil
 		  for token = (next-real-lua-token) while token
-		  for _ = (message "%s" (list *token-start* *token-end* point-of-interest))
+		  ;;for _ = (message "%s" (list *token-start* *token-end* point-of-interest))
 		  if (and (>= point-of-interest *token-start*)
 				  (< point-of-interest *token-end*)) do (return (loop with s = (token-string)
 																	   for e in (cons cenv env)
@@ -378,3 +378,6 @@ repeat  return  then  true  until  while some_id{}[]()+%*/, { } [ ] ( ) + % * / 
 	  (if failed (switch-to-buffer-other-window "*Test*")))))
 
 
+;; examples
+;; (define-key lua-mode-map (kbd "M-.") 'lua-find-def)
+;; (define-key lua-mode-map (kbd "C-c C-o") 'lua-goto-function)
